@@ -1,4 +1,5 @@
 import { badRequestError } from "../app-error";
+import { isEpayChannel, normalizeEpayChannels } from "../../modules/payment/epay-channels";
 
 export function validatePaymentConfigInput(input: {
   name?: string;
@@ -8,6 +9,7 @@ export function validatePaymentConfigInput(input: {
   appSecret?: string;
   pid?: string;
   key?: string;
+  epayChannels?: string[];
   alipayAppId?: string;
   alipayPrivateKey?: string;
   alipayPublicKey?: string;
@@ -26,12 +28,21 @@ export function validatePaymentConfigInput(input: {
     throw badRequestError("启用 BEpusdt 时必须填写 App Secret", "BEPUSDT_APP_SECRET_REQUIRED");
   }
 
-  if (input.provider === "EPAY" && input.isEnabled !== false) {
-    if (!(input.pid?.trim())) {
-      throw badRequestError("启用 Epay 时必须填写 PID", "EPAY_PID_REQUIRED");
+  if (input.provider === "EPAY") {
+    if (input.epayChannels !== undefined && (!Array.isArray(input.epayChannels) || input.epayChannels.some((channel) => !isEpayChannel(channel)))) {
+      throw badRequestError("易支付渠道配置无效", "EPAY_CHANNEL_INVALID");
     }
-    if (!(input.key?.trim())) {
-      throw badRequestError("启用 Epay 时必须填写 Key", "EPAY_KEY_REQUIRED");
+
+    if (input.isEnabled !== false) {
+      if (!(input.pid?.trim())) {
+        throw badRequestError("启用 Epay 时必须填写 PID", "EPAY_PID_REQUIRED");
+      }
+      if (!(input.key?.trim())) {
+        throw badRequestError("启用 Epay 时必须填写 Key", "EPAY_KEY_REQUIRED");
+      }
+      if (normalizeEpayChannels(input.epayChannels).length === 0) {
+        throw badRequestError("启用 Epay 时至少选择一个支付渠道", "EPAY_CHANNEL_REQUIRED");
+      }
     }
   }
 

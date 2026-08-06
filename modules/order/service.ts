@@ -5,7 +5,8 @@ import { badRequestError, conflictError, notFoundError } from "../../lib/app-err
 import { validateOrderInput } from "../../lib/validators/order";
 import { getAdminContext, logAdminOperation } from "../auth/service";
 import { getAdminProductById } from "../catalog/service";
-import { createPaymentForOrder, handlePaymentNotify } from "../payment/service";
+import { createPaymentForOrder, getPaymentConfigs, handlePaymentNotify } from "../payment/service";
+import { resolveEpayChannel } from "../payment/epay-channels";
 import { deliverOrder } from "../delivery/service";
 import { closeOrderRecord, createOrderRecord, findOrderById, findOrderWithProduct, listOrderRecords } from "./repository";
 import { generateOrderNo, generateQueryToken } from "./number";
@@ -94,7 +95,11 @@ export async function createOrder(input: {
   const queryToken = generateQueryToken();
   let paymentChannel: string | null = null;
   if (input.paymentProvider === "EPAY") {
-    paymentChannel = input.paymentChannel === "wxpay" ? "wxpay" : "alipay";
+    const paymentConfigs = await getPaymentConfigs(prisma);
+    paymentChannel = resolveEpayChannel(paymentConfigs.EPAY.epayChannels, input.paymentChannel);
+    if (!paymentChannel) {
+      throw badRequestError("所选易支付渠道当前未启用", "EPAY_CHANNEL_DISABLED");
+    }
   } else if (input.paymentProvider === "ALIPAY") {
     paymentChannel = input.paymentChannel ?? "alipay_h5";
   }

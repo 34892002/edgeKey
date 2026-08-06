@@ -188,6 +188,7 @@ import { onCreateOrder } from "./createOrder.telefunc";
 import { onPreviewDiscount } from "./previewDiscount.telefunc";
 import type { PaymentProvider } from "../../../modules/payment/types";
 import { isMobile } from "../../../lib/utils/device";
+import { EPAY_CHANNEL_OPTIONS, normalizeEpayChannels } from "../../../modules/payment/epay-channels";
 
 import { saveLocalOrder } from "../../../lib/local-orders";
 import type { Data } from "./+data";
@@ -199,10 +200,13 @@ const submitting = ref(false);
 const errorMessage = ref("");
 const descriptionRef = ref<HTMLElement | null>(null);
 const previewImage = ref<{ src: string; alt: string } | null>(null);
-const epayChannels = [
-  { value: "alipay", label: "支付宝", icon: "alipay" },
-  { value: "wxpay", label: "微信", icon: "wechat" },
-] as const;
+const epayChannels = computed(() => {
+  const method = paymentMethods.find((item) => item.provider === "EPAY");
+  const enabledChannels = normalizeEpayChannels(method?.epayChannels);
+  return EPAY_CHANNEL_OPTIONS
+    .filter((channel) => enabledChannels.includes(channel.value))
+    .map((channel) => ({ ...channel, icon: channel.value === "alipay" ? "alipay" : "wechat" }));
+});
 
 const discountPreview = reactive({
   loading: false,
@@ -229,7 +233,7 @@ function getDeliveryTypeLabel(type: string) {
 let mobile = false;
 
 function getDefaultPaymentChannel(provider: PaymentProvider | "") {
-  if (provider === "EPAY") return "alipay";
+  if (provider === "EPAY") return epayChannels.value[0]?.value ?? "";
   if (provider === "ALIPAY") return mobile ? "alipay_h5" : "alipay_pc";
   if (provider === "ALIPAY_FACE") return "";
   return "";
@@ -388,5 +392,4 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#39;");
 }
 </script>
-
 
