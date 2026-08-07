@@ -7,6 +7,11 @@
 - **payment:** 修复 EdgeKey 与同一 Cloudflare 账号下的 HashPay Worker 通信时被 `error code: 1042` 拦截的问题。
 - **payment:** HashPay 网关返回非 JSON 响应时，记录 HTTP 状态、响应类型与响应摘要，便于排查上游或网络错误。
 
+### Features
+
+- **payment:** 易支付支持在后台配置前台展示的支付渠道（支付宝、微信支付）；下单与创建支付时会在服务端校验所选渠道。旧配置默认同时启用支付宝和微信支付，以保持兼容性。感谢 [@shellus](https://github.com/shellus) 的贡献（[PR #21](https://github.com/34892002/edgeKey/pull/21)）。
+
+
 ### Improvements
 
 - **ci:** 新增可手动触发的 EdgeKey 上游同步工作流；升级时保留实例的 `wrangler.jsonc` 配置。
