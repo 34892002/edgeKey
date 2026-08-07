@@ -1,0 +1,50 @@
+name: Update EdgeKey
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-edgekey
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout instance repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sync from upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Keep instance-specific Cloudflare bindings and compatibility flags.
+          if [ -f wrangler.jsonc ]; then
+            cp wrangler.jsonc "$RUNNER_TEMP/wrangler.current.jsonc"
+          fi
+
+          git fetch https://github.com/34892002/edgeKey.git main
+          git reset --hard FETCH_HEAD
+
+          if [ -f "$RUNNER_TEMP/wrangler.current.jsonc" ]; then
+            cp "$RUNNER_TEMP/wrangler.current.jsonc" wrangler.jsonc
+          fi
+
+          git config user.name "EdgeKey Updater"
+          git config user.email "actions@github.com"
+
+          if git diff --quiet; then
+            echo "EdgeKey is already up to date."
+          else
+            git add -A
+            git commit -m "Update EdgeKey from upstream"
+          fi
+
+          git push --force-with-lease origin "HEAD:${GITHUB_REF_NAME}"

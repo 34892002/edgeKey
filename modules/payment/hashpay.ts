@@ -1,4 +1,4 @@
-import { externalServiceError } from "../../lib/app-error";
+import { externalServiceError, isAppError } from "../../lib/app-error";
 import { logger } from "../../lib/logger";
 import type { PaymentProviderAdapter, CreatePaymentInput, CreatePaymentResult, VerifyNotifyResult } from "./provider";
 
@@ -187,8 +187,26 @@ export function createHashpayAdapter(config: HashpayConfig): PaymentProviderAdap
           },
           body: requestBody,
         });
-        json = (await response.json()) as HashpayResponse;
+        const responseText = await response.text();
+
+        try {
+          json = JSON.parse(responseText) as HashpayResponse;
+        } catch {
+          const responsePreview = responseText.replace(/\s+/g, " ").trim().slice(0, 300);
+          logger.warn("hashpay.invalid_response", {
+            status: response.status,
+            contentType: response.headers.get("content-type"),
+            responsePreview,
+          });
+          throw externalServiceError(
+            `HashPay 网关返回非 JSON 响应（HTTP ${response.status}）：${responsePreview || "空响应"}`,
+            "HASHPAY_INVALID_RESPONSE"
+          );
+        }
       } catch (err) {
+        if (isAppError(err)) {
+          throw err;
+        }
         throw externalServiceError(
           `HashPay 请求失败: ${err instanceof Error ? err.message : String(err)}`,
           "HASHPAY_INVALID_RESPONSE"

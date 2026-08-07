@@ -1,5 +1,16 @@
 # Change Log
 
+## v1.5.4 (2026-08-07)
+
+### Bug Fixes
+
+- **payment:** 修复 EdgeKey 与同一 Cloudflare 账号下的 HashPay Worker 通信时被 `error code: 1042` 拦截的问题。
+- **payment:** HashPay 网关返回非 JSON 响应时，记录 HTTP 状态、响应类型与响应摘要，便于排查上游或网络错误。
+
+### Improvements
+
+- **ci:** 新增可手动触发的 EdgeKey 上游同步工作流；升级时保留实例的 `wrangler.jsonc` 配置。
+
 ## v1.5.3 (2026-07-22)
 
 ### Improvements
