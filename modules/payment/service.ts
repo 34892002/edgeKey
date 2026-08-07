@@ -17,6 +17,7 @@ import { createStripeAdapter } from "./stripe";
 import { createHashpayAdapter } from "./hashpay";
 import { deliverOrder } from "../delivery/service";
 import { findOrderRecord, updateOrderPayment } from "../order/repository";
+import { DEFAULT_EPAY_CHANNELS, normalizeEpayChannels, resolveEpayChannel } from "./epay-channels";
 
 const defaultPaymentConfigs: Record<PaymentProvider, PaymentConfigValue> = {
   BEPUSDT: {
@@ -36,6 +37,7 @@ const defaultPaymentConfigs: Record<PaymentProvider, PaymentConfigValue> = {
     baseUrl: "",
     pid: "",
     key: "",
+    epayChannels: [...DEFAULT_EPAY_CHANNELS],
     notifyUrl: "/api/payments/epay/notify",
     returnUrl: "/order/{orderNo}?token={token}",
   },
@@ -105,13 +107,17 @@ function normalizePaymentConfig(record: Awaited<ReturnType<typeof getPaymentConf
 
   try {
     const parsed = JSON.parse(record.configJson) as Partial<PaymentConfigValue>;
-    return {
+    const value = {
       ...defaults,
       ...parsed,
       provider,
       name: record.name,
       isEnabled: record.isEnabled,
     };
+    if (provider === "EPAY") {
+      value.epayChannels = normalizeEpayChannels(parsed.epayChannels);
+    }
+    return value;
   } catch {
     return {
       ...defaults,
@@ -133,6 +139,7 @@ export async function listEnabledPaymentMethods(prisma?: PrismaClient): Promise<
       label: value.name,
       enabled: value.isEnabled,
       baseUrl: value.baseUrl,
+      epayChannels: provider === "EPAY" ? normalizeEpayChannels(value.epayChannels) : undefined,
     };
   });
 }
@@ -159,6 +166,7 @@ export async function savePaymentConfig(input: PaymentConfigValue) {
     appSecret: input.appSecret?.trim() || "",
     pid: input.pid?.trim() || "",
     key: input.key?.trim() || "",
+    ...(input.provider === "EPAY" ? { epayChannels: normalizeEpayChannels(input.epayChannels) } : {}),
     notifyUrl: input.notifyUrl?.trim() || "",
     returnUrl: input.returnUrl?.trim() || "",
     alipayAppId: input.alipayAppId?.trim() || "",
@@ -265,6 +273,13 @@ export async function createPaymentForOrder(orderNo: string, prisma?: PrismaClie
     throw badRequestError(`${config.name} 缺少网关地址配置`, "PAYMENT_PROVIDER_BASE_URL_MISSING");
   }
 
+  const paymentChannel = order.paymentProvider === "EPAY"
+    ? resolveEpayChannel(config.epayChannels, order.paymentChannel)
+    : order.paymentChannel ?? undefined;
+  if (order.paymentProvider === "EPAY" && !paymentChannel) {
+    throw conflictError("所选易支付渠道当前未启用", "EPAY_CHANNEL_DISABLED");
+  }
+
   const adapter = createProviderAdapter(config);
   const baseOrigin = await getBaseOrigin(client);
   const templateValues = {
@@ -289,7 +304,7 @@ export async function createPaymentForOrder(orderNo: string, prisma?: PrismaClie
     productName: order.productNameSnapshot,
     notifyUrl,
     returnUrl,
-    paymentChannel: order.paymentChannel ?? undefined,
+    paymentChannel: paymentChannel ?? undefined,
   });
 
   if (result.paymentOrderNo) {

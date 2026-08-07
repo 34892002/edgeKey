@@ -1,3 +1,5 @@
+import type { EpayChannel } from "./epay-channels";
+
 export type PaymentProvider = "BEPUSDT" | "EPAY" | "ALIPAY" | "ALIPAY_FACE" | "STRIPE" | "FREE_PAY" | "HASHPAY";
 
 export interface PaymentMethodItem {
@@ -5,6 +7,7 @@ export interface PaymentMethodItem {
   label: string;
   enabled: boolean;
   baseUrl?: string;
+  epayChannels?: EpayChannel[];
 }
 
 export interface PaymentConfigValue {
@@ -16,6 +19,7 @@ export interface PaymentConfigValue {
   appSecret?: string;
   pid?: string;
   key?: string;
+  epayChannels?: EpayChannel[];
   notifyUrl?: string;
   returnUrl?: string;
   alipayAppId?: string;

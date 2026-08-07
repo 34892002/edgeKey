@@ -57,6 +57,7 @@ import AlipayFaceForm from "./forms/AlipayFaceForm.vue";
 import StripeForm from "./forms/StripeForm.vue";
 import HashpayForm from "./forms/HashpayForm.vue";
 import type { PaymentProvider, PaymentConfigValue } from "../../../modules/payment/types";
+import { DEFAULT_EPAY_CHANNELS } from "../../../modules/payment/epay-channels";
 
 const formMap: Record<string, any> = { BEPUSDT: BEpusdtForm, EPAY: EpayForm, ALIPAY: AlipayForm, ALIPAY_FACE: AlipayFaceForm, STRIPE: StripeForm, HASHPAY: HashpayForm };
 
@@ -78,7 +79,7 @@ const form = reactive({
 
 const extraFieldsMap: Record<string, () => Record<string, any>> = {
   BEPUSDT: () => ({ appId: props.initialValue?.appId ?? '', appSecret: props.initialValue?.appSecret ?? '' }),
-  EPAY: () => ({ pid: props.initialValue?.pid ?? '', key: props.initialValue?.key ?? '' }),
+  EPAY: () => ({ pid: props.initialValue?.pid ?? '', key: props.initialValue?.key ?? '', epayChannels: props.initialValue?.epayChannels ?? [...DEFAULT_EPAY_CHANNELS] }),
   ALIPAY: () => ({ alipayAppId: props.initialValue?.alipayAppId ?? '', alipayPrivateKey: props.initialValue?.alipayPrivateKey ?? '', alipayPublicKey: props.initialValue?.alipayPublicKey ?? '' }),
   ALIPAY_FACE: () => ({ alipayAppId: props.initialValue?.alipayAppId ?? '', alipayPrivateKey: props.initialValue?.alipayPrivateKey ?? '', alipayPublicKey: props.initialValue?.alipayPublicKey ?? '' }),
   STRIPE: () => ({ stripeSecretKey: props.initialValue?.stripeSecretKey ?? '', stripeWebhookSecret: props.initialValue?.stripeWebhookSecret ?? '', stripeCurrency: props.initialValue?.stripeCurrency ?? 'cny' }),
